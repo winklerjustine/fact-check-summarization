@@ -473,8 +473,8 @@ def _format_question_answers_bpe(bpe, source, question, answer, special_token, m
 
 def preprecess_QA_generation_newsqa_squad(input_dir,
                                           output_dir,
-                                          encoder_json="/home/ec2-user/fairseq/encoder.json",
-                                          vocab_bpe="/home/ec2-user/fairseq/vocab.bpe",
+                                          encoder_json="fairseq_downloaded_files/encoder.json",
+                                          vocab_bpe="fairseq_downloaded_files/vocab.bpe",
                                           only_squad=False):
     # use '50009' for the special dictionary token to separate question and answers since
     # this token is not encountered in bpe outputs
@@ -611,7 +611,7 @@ if __name__ == '__main__':
     if args.mode == 'preprocess_cnndm':
         preprocess_cnndm(raw_dir=args.input_dir, filter_level=args.filter_level, output_dir=args.output_dir)
     if args.mode == 'newsqa_squad_prepro':
-        preprecess_QA_generation_newsqa_squad(input_dir=args.input_dir, output_dir=args.output_dir, only_squad=False)
+        #preprecess_QA_generation_newsqa_squad(input_dir=args.input_dir, output_dir=args.output_dir, only_squad=False)
         binarize_dataset(dict_path=args.tokenizer_dir, input_dir=args.input_dir, output_dir=os.path.join(args.input_dir, 'data_bin'))
     if args.mode == 'bpe_binarize':
         # remember to remove '\r' characters using '%s/\r//g' in vim

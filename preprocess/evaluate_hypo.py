@@ -534,19 +534,31 @@ def make_unlikelihood_dataset(args):
 
 
 def convert_hypo_to_jsonl(args):
-    for h in tqdm(glob.glob(os.path.join(args.base_dir, args.sub_dir, args.split + args.pattern))):
+    """
+    split can be a dataset split (e.g. train, test, valid)
+    expecting a text file, every line is one summary
+    base_dir / sub_dir / split pattern
+    /data/my_dataset/test.*.target  your files: test.001.target / test.002.target
+    gives you a jsonr: a file where each line is one json dictionary
+    """
+    print('inside')
+    # I want every file that looks like this base_dir
+    files = glob.glob(os.path.join(args.base_dir, args.sub_dir, args.split + args.pattern))
+    for h in tqdm(files):
         hypo_filename = os.path.basename(h)
         print('Processing ', hypo_filename)
-        out_file = h + '.hypo'
+        out_file = h + '.hypo'  # hypo file: result of this is a json
         with open(h, 'r') as f_in, \
             open(out_file, 'w') as f_out:
-            for line in f_in:
+            for line in f_in:  # each line will contain
+                if len(line.strip()) == 0:
+                    continue
                 d = {
                     'summaries': [line.strip(),],
                     'scores': [0.0,],
                     'unnorm_scores': [0.0,]
                 }
-                json.dump(d, f_out)
+                json.dump(d, f_out)  # writes the json into the file, followed by new line
                 f_out.write('\n')
 
 

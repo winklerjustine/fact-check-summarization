@@ -53,8 +53,12 @@ def from_pretrained(
 
     # convenience hack for loading data and BPE codes from model archive
     if data_name_or_path.startswith('.'):
+        print('startwith')
+        print(os.path.abspath(os.path.join(model_path, data_name_or_path)))
         kwargs['data'] = os.path.abspath(os.path.join(model_path, data_name_or_path))
     else:
+        # print(data_name_or_path)
+        # print(file_utils.load_archive_file(data_name_or_path))
         kwargs['data'] = file_utils.load_archive_file(data_name_or_path)
     for file, arg in {
         'code': 'bpe_codes',
@@ -63,6 +67,8 @@ def from_pretrained(
     }.items():
         path = os.path.join(model_path, file)
         if os.path.exists(path):
+            print('exists')
+            print(path + ' exists')
             kwargs[arg] = path
 
     if 'user_dir' in kwargs:

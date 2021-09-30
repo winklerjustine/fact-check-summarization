@@ -52,7 +52,7 @@ if __name__ == '__main__':
         # "total-num-update": 15000,
         # "max-update": 10,
         "max-epoch": args.epoch,
-        "warmup-updates": 500,
+        "warmup-updates": 500,  # keep to
         # "warmup-updates": 0,
         "fp16": "True",
         "update-freq": 4,
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         train_path = "<data-bin location>"
         init_path = "<pretrained bart.large location>"
         output_path = '<model output location>'
-        ngpus = 4 # modify based on the number of GPUs on the local machine.
+        ngpus = 4  # modify based on the number of GPUs on the local machine.
 
         cmd = ['python', 'train.py', ]
         cmd += ['--save_dir', output_path]
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                         stderr=open(output_path + "/Job_0.stderr", 'wt', encoding='utf-8'))
         for line in iter(process.stdout.readline, b''):  # replace '' with b'' for Python 3
             print(line)
-    else:
+    else:  # on AMAZON, they used this
         train_instance_type = 'ml.p3.16xlarge'
         train_instance_count = 1
         train_path = "s3://path/to/data_bin"

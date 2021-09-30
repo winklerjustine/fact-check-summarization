@@ -46,7 +46,7 @@ Download bpe encoder.json, vocabulary and fairseq dictionary to a directory, say
 ```bash
 wget -O <bpe-dir>/encoder.json 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/encoder.json'
 wget -O <bpe-dir>/vocab.bpe 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/vocab.bpe'
-wget -N <bpe-dir>/dict.txt' https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/dict.txt'
+wget -N <bpe-dir>/dict.txt 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/dict.txt'
 
 cd preprocess
 python data_prepro_clean.py --mode bpe_binarize --input_dir <processed-data-dir> --tokenizer_dir <bpe-dir>

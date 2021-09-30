@@ -75,7 +75,7 @@ def _run_q_gen_process_local(job_idx, *, input_source_file, input_ans_file, out_
             result = good_ans + bad_ans
             result = result[:num_ans_target]
         else:
-            result = ans_list + random.choices(ans_list, k=num_ans_target-len(ans_list))
+            result = ans_list + random.choices(ans_list, k=num_ans_target - len(ans_list))
         return result
 
     count = 0
@@ -114,7 +114,7 @@ def _run_q_gen_process_local(job_idx, *, input_source_file, input_ans_file, out_
 
                     for answer in filtered_ans_list_hypo:
                         # if answer not in ans_dict:
-                            # ans_dict[answer] = None
+                        # ans_dict[answer] = None
                         _, source_answer_bpe = _format_source_answers_bpe(bpe, source_text, answer, special_token_id)
                         input_buffer.append((hypo_id, answer, ' '.join(map(str, source_answer_bpe))))
                     hypo_id += 1
@@ -127,16 +127,16 @@ def _run_q_gen_process_local(job_idx, *, input_source_file, input_ans_file, out_
                 for i in range(len(input_buffer)):
                     if i % bsz == 0 and i != 0:
                         hypotheses_batch, score_batch, unnormalized_score_batch = bart.sample(slines,
-                                                                    beam=args.beam,
-                                                                    lenpen=1.0,
-                                                                    max_len_b=args.max_len,
-                                                                    min_len=args.min_len,
-                                                                    sampling=args.sampling,
-                                                                    sampling_topk=args.sampling_topk,
-                                                                    sampling_topp=args.sampling_topp,
-                                                                    return_all=True,
-                                                                    input_is_bpe=True
-                                                                    )
+                                                                                              beam=args.beam,
+                                                                                              lenpen=1.0,
+                                                                                              max_len_b=args.max_len,
+                                                                                              min_len=args.min_len,
+                                                                                              sampling=args.sampling,
+                                                                                              sampling_topk=args.sampling_topk,
+                                                                                              sampling_topp=args.sampling_topp,
+                                                                                              return_all=True,
+                                                                                              input_is_bpe=True
+                                                                                              )
                         assert len(hypotheses_batch) == len(score_batch) == len(unnormalized_score_batch), \
                             "lens not equal: {} and {} and {}".format(
                                 len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
@@ -157,16 +157,16 @@ def _run_q_gen_process_local(job_idx, *, input_source_file, input_ans_file, out_
                     pa_ids.append((input_buffer[i][0], input_buffer[i][1]))
                 if slines != []:
                     hypotheses_batch, score_batch, unnormalized_score_batch = bart.sample(slines,
-                                                                beam=args.beam,
-                                                                lenpen=1.0,
-                                                                max_len_b=args.max_len,
-                                                                min_len=args.min_len,
-                                                                sampling=args.sampling,
-                                                                sampling_topk=args.sampling_topk,
-                                                                sampling_topp=args.sampling_topp,
-                                                                return_all=True,
-                                                                input_is_bpe=True
-                                                                )
+                                                                                          beam=args.beam,
+                                                                                          lenpen=1.0,
+                                                                                          max_len_b=args.max_len,
+                                                                                          min_len=args.min_len,
+                                                                                          sampling=args.sampling,
+                                                                                          sampling_topk=args.sampling_topk,
+                                                                                          sampling_topp=args.sampling_topp,
+                                                                                          return_all=True,
+                                                                                          input_is_bpe=True
+                                                                                          )
                     assert len(hypotheses_batch) == len(score_batch) == len(unnormalized_score_batch), \
                         "lens not equal: {} and {} and {}".format(
                             len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
@@ -219,8 +219,7 @@ def _run_q_gen_process_local(job_idx, *, input_source_file, input_ans_file, out_
 
 
 def _sample_wrapper(model, sentences, beam=1, verbose=False, return_all=False,
-               input_is_bpe=False, return_token_scores=False, **kwargs):
-
+                    input_is_bpe=False, return_token_scores=False, **kwargs):
     if return_token_scores:
         hypotheses_batch, score_batch, unnormalized_score_batch, pos_scores, tokens = model.sample(
             sentences=sentences,
@@ -246,7 +245,7 @@ def _sample_wrapper(model, sentences, beam=1, verbose=False, return_all=False,
 
 
 def _run_qa_gen_process_local_batch_lines(job_idx, *, input_source_file, out_text_file,
-                             offset, end, checkpoint_dir, ckp_file, bin_dir, args):
+                                          offset, end, checkpoint_dir, ckp_file, bin_dir, args):
     bart = BARTModel.from_pretrained(
         checkpoint_dir,
         checkpoint_file=ckp_file,
@@ -293,15 +292,15 @@ def _run_qa_gen_process_local_batch_lines(job_idx, *, input_source_file, out_tex
                         )
                     assert len(hypotheses_batch) == len(score_batch) == len(unnormalized_score_batch), \
                         "lens not equal: {} and {} and {}".format(
-                        len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
-                    )
+                            len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
+                        )
                     assert len(hypotheses_batch) == len(slines), "slines={}, generated_score length={}".format(
                         slines, len(hypotheses_batch)
                     )
                     if args.return_token_scores:
                         for t, s, unnormalized_s, pos_s, toks, sline in zip(hypotheses_batch, score_batch,
-                                                                           unnormalized_score_batch,
-                                                                           pos_score_batch, tokens_batch, slines):
+                                                                            unnormalized_score_batch,
+                                                                            pos_score_batch, tokens_batch, slines):
                             qa_item = [{
                                 'context': sline,
                                 'qa': t if type(t) is list else [t, ],
@@ -321,8 +320,8 @@ def _run_qa_gen_process_local_batch_lines(job_idx, *, input_source_file, out_tex
                                 'context': sline,
                                 'qa': t if type(t) is list else [t, ],
                                 'norm_scores': s if type(s) is list else [s, ],
-                                'unnorm_scores':  unnormalized_s if type(unnormalized_s) is list else [unnormalized_s,]
-                            },]
+                                'unnorm_scores': unnormalized_s if type(unnormalized_s) is list else [unnormalized_s, ]
+                            }, ]
                             json.dump(qa_item, out_text_f)
                             out_text_f.write('\n')
                     out_text_f.flush()
@@ -398,7 +397,7 @@ def _run_qa_gen_process_local_batch_lines(job_idx, *, input_source_file, out_tex
 
 
 def _run_qa_gen_process_local(job_idx, *, input_source_file, out_text_file,
-                             offset, end, checkpoint_dir, ckp_file, bin_dir, args):
+                              offset, end, checkpoint_dir, ckp_file, bin_dir, args):
     bart = BARTModel.from_pretrained(
         checkpoint_dir,
         checkpoint_file=ckp_file,
@@ -462,8 +461,8 @@ def _run_qa_gen_process_local(job_idx, *, input_source_file, out_text_file,
                             )
                         assert len(hypotheses_batch) == len(score_batch) == len(unnormalized_score_batch), \
                             "lens not equal: {} and {} and {}".format(
-                            len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
-                        )
+                                len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
+                            )
                         assert len(hypotheses_batch) == len(slines), "slines={}, generated_score length={}".format(
                             slines, len(hypotheses_batch)
                         )
@@ -553,8 +552,9 @@ def _run_qa_gen_process_local(job_idx, *, input_source_file, out_text_file,
         del bart
         torch.cuda.empty_cache()
 
+
 def _run_qa_eval_process_local(job_idx, *, input_source_file, input_target_file, input_qas_file, out_text_file,
-                             offset, end, checkpoint_dir, ckp_file, bin_dir, args):
+                               offset, end, checkpoint_dir, ckp_file, bin_dir, args):
     bart = BARTModel.from_pretrained(
         checkpoint_dir,
         checkpoint_file=ckp_file,
@@ -596,10 +596,10 @@ def _run_qa_eval_process_local(job_idx, *, input_source_file, input_target_file,
                 if offset + count >= end:
                     break
 
-                max_source_tokens = 1024
+                max_source_tokens = 1024  # TODO overwrite? hard-coded here
                 if args.prepend_target:
                     src_tokens = bart.encode(target_line.strip() + ' ' + source_line.strip(), no_bos=True,
-                                          input_is_bpe=False)
+                                             input_is_bpe=False)
                 else:
                     src_tokens = bart.encode(source_line.strip(), no_bos=True, input_is_bpe=False)
                 if len(src_tokens) > max_source_tokens:
@@ -658,7 +658,7 @@ def _run_qa_eval_process_local(job_idx, *, input_source_file, input_target_file,
                         qa['eval_ns'] = hypo[0]['score'].item()
                         qa['eval_uns'] = sum(hypo[0]['positional_scores']).item()
                         special_token_loc = (hypo[0]['tokens'] == special_token).nonzero()
-                        ans_scores = hypo[0]['positional_scores'][special_token_loc+1:-1]
+                        ans_scores = hypo[0]['positional_scores'][special_token_loc + 1:-1]
                         qa['eval_a_uns'] = sum(ans_scores).item() if ans_scores.numel() > 0 else 0.0
                         qa['eval_a_ns'] = qa['eval_a_uns'] * 1.0 / ans_scores.numel() if ans_scores.numel() > 0 else 0.0
                         qa['eval_pos_scores'] = hypo[0]['positional_scores'].tolist()
@@ -673,7 +673,7 @@ def _run_qa_eval_process_local(job_idx, *, input_source_file, input_target_file,
                 qas_line = qas_f.readline()
                 count += 1
                 # if count % 100 == 0:
-                    # print("Generated {} lines from worker {}".format(count, job_idx))
+                # print("Generated {} lines from worker {}".format(count, job_idx))
 
         assert offset + count == end, "!worker ended at {}, should have been {}".format(
             offset + count,
@@ -684,7 +684,7 @@ def _run_qa_eval_process_local(job_idx, *, input_source_file, input_target_file,
 
 
 def _run_qa_eval_gen_process_local(job_idx, *, input_source_file, input_target_file, input_qas_file, out_text_file,
-                             offset, end, checkpoint_dir, ckp_file, bin_dir, args):
+                                   offset, end, checkpoint_dir, ckp_file, bin_dir, args):
     bart = BARTModel.from_pretrained(
         checkpoint_dir,
         checkpoint_file=ckp_file,
@@ -729,7 +729,7 @@ def _run_qa_eval_gen_process_local(job_idx, *, input_source_file, input_target_f
                 max_source_tokens = 1024
                 if args.prepend_target:
                     src_tokens = bart.encode(target_line.strip() + ' ' + source_line.strip(), no_bos=True,
-                                              input_is_bpe=False)
+                                             input_is_bpe=False)
                 else:
                     src_tokens = bart.encode(source_line.strip(), no_bos=True, input_is_bpe=False)
 
@@ -847,15 +847,15 @@ def process_chunk_local(job_idx, *, input_file, out_text_file, offset, end, chec
             if count % bsz == 0:
                 with torch.no_grad():
                     hypotheses_batch, score_batch, unnormalized_score_batch = bart.sample(slines,
-                                                                 beam=args.beam,
-                                                                 lenpen=1.0,
-                                                                 max_len_b=args.max_len,
-                                                                 min_len=args.min_len,
-                                                                 sampling=args.sampling,
-                                                                 sampling_topk=args.sampling_topk,
-                                                                 sampling_topp=args.sampling_topp,
-                                                                 return_all=args.return_all
-                                                                 )
+                                                                                          beam=args.beam,
+                                                                                          lenpen=1.0,
+                                                                                          max_len_b=args.max_len,
+                                                                                          min_len=args.min_len,
+                                                                                          sampling=args.sampling,
+                                                                                          sampling_topk=args.sampling_topk,
+                                                                                          sampling_topp=args.sampling_topp,
+                                                                                          return_all=args.return_all
+                                                                                          )
                 assert len(hypotheses_batch) == len(score_batch) == len(unnormalized_score_batch), \
                     "lens not equal: {} and {} and {}".format(
                         len(hypotheses_batch), len(score_batch), len(unnormalized_score_batch)
@@ -866,10 +866,10 @@ def process_chunk_local(job_idx, *, input_file, out_text_file, offset, end, chec
 
                 for t, s, unnormalized_s in zip(hypotheses_batch, score_batch, unnormalized_score_batch):
                     d = {
-                        'summaries': t if type(t) is list else [t,],
-                        'scores': s if type(s) is list else [s,],
-                        'unnorm_scores': unnormalized_s if type(unnormalized_s) is list else [unnormalized_s,]
-                         }
+                        'summaries': t if type(t) is list else [t, ],
+                        'scores': s if type(s) is list else [s, ],
+                        'unnorm_scores': unnormalized_s if type(unnormalized_s) is list else [unnormalized_s, ]
+                    }
                     json.dump(d, out_text_f)
                     out_text_f.write('\n')
                 out_text_f.flush()
@@ -883,15 +883,15 @@ def process_chunk_local(job_idx, *, input_file, out_text_file, offset, end, chec
         if slines != []:
             with torch.no_grad():
                 hypotheses_batch, score_batch, unnormalized_score_batch = bart.sample(slines,
-                                                            beam=args.beam,
-                                                            lenpen=1.0,
-                                                            max_len_b=args.max_len,
-                                                            min_len=args.min_len,
-                                                            sampling=args.sampling,
-                                                            sampling_topk=args.sampling_topk,
-                                                            sampling_topp=args.sampling_topp,
-                                                            return_all=args.return_all
-                                                            )
+                                                                                      beam=args.beam,
+                                                                                      lenpen=1.0,
+                                                                                      max_len_b=args.max_len,
+                                                                                      min_len=args.min_len,
+                                                                                      sampling=args.sampling,
+                                                                                      sampling_topk=args.sampling_topk,
+                                                                                      sampling_topp=args.sampling_topp,
+                                                                                      return_all=args.return_all
+                                                                                      )
             for t, s, unnormalized_s in zip(hypotheses_batch, score_batch, unnormalized_score_batch):
                 d = {
                     'summaries': t if type(t) is list else [t, ],
@@ -919,6 +919,7 @@ def check_score_file(file_path):
                 break
             i += 1
             line = f.readline()
+
 
 class SMInference(object):
     def __init__(self, base_dir, output_suffix, num_workers, mode,
@@ -951,9 +952,9 @@ class SMInference(object):
                 filename = os.path.basename(file)
                 self.completed.append(filename)
 
-
     def run_q_gen(self):
-        source_files = sorted(list(glob.glob(os.path.join(self.args.base_dir, self.args.source_dir, self.args.input_file))))
+        source_files = sorted(
+            list(glob.glob(os.path.join(self.args.base_dir, self.args.source_dir, self.args.input_file))))
         ans_files = sorted(list(
             glob.glob(os.path.join(self.args.base_dir, self.args.answer_dir, self.args.ans_file))))
         assert len(source_files) == len(ans_files)
@@ -979,7 +980,8 @@ class SMInference(object):
                         job_idx,
                         input_source_file=source_file,
                         input_ans_file=ans_file,
-                        out_text_file=os.path.join(self.args.output_dir, "{}.question{}".format(output_prefix, job_idx)),
+                        out_text_file=os.path.join(self.args.output_dir,
+                                                   "{}.question{}".format(output_prefix, job_idx)),
                         offset=offsets[job_idx],
                         end=offsets[job_idx + 1],
                         checkpoint_dir=self.checkpoint_dir,
@@ -990,7 +992,7 @@ class SMInference(object):
                     pool_results = pool.uimap(process_func, list(range(self.num_workers)))
                     for res in pool_results:
                         print('Done with process {}'.format(res))
-            self.concat_temp_files(output_prefix+'.question')
+            self.concat_temp_files(output_prefix + '.question')
             print('Written to {}'.format(output_prefix + '.question'))
             if not self.args.iterate_files:
                 break
@@ -1008,9 +1010,9 @@ class SMInference(object):
 
             output_prefix = filename + '.' + self.output_suffix
             print("Processing {} lines in {}".format(n_lines_source, source_file))
-            step = n_lines_source // self.num_workers
+            step = n_lines_source // self.num_workers  # steps = lines/number gpus
             offsets = [i * step for i in range(self.num_workers)]
-            offsets.append(n_lines_source)
+            offsets.append(n_lines_source)  # needed for concatenation?
             if self.mode == 'local':
                 if self.args.batch_lines:
                     with ProcessPool(ncpus=self.num_workers) as pool:
@@ -1044,7 +1046,7 @@ class SMInference(object):
                         pool_results = pool.uimap(process_func, list(range(self.num_workers)))
                         for res in pool_results:
                             print('Done with process {}'.format(res))
-            self.concat_temp_files(output_prefix+'.qas')
+            self.concat_temp_files(output_prefix + '.qas')
             print('Written to {}'.format(output_prefix + '.qas'))
             if not self.args.iterate_files:
                 break
@@ -1055,7 +1057,7 @@ class SMInference(object):
         target_files = sorted(list(glob.glob(os.path.join(self.args.base_dir, self.args.source_dir,
                                                           self.args.target_file))))
         qas_files = sorted(list(glob.glob(os.path.join(self.args.base_dir, self.args.qas_dir,
-                                                          self.args.input_file))))
+                                                       self.args.input_file))))
         assert len(source_files) == len(target_files) == len(qas_files)
         print("Entering run_qa_eval:")
         # print("source_files={}".format(source_files))
@@ -1104,7 +1106,7 @@ class SMInference(object):
                 break
 
     def run(self):
-        for h in tqdm(glob.glob(os.path.join(self.base_dir, args.input_file+'*'))):
+        for h in tqdm(glob.glob(os.path.join(self.base_dir, args.input_file + '*'))):
             filename = os.path.basename(h)
 
             if filename + '.{}.hypo'.format(self.output_suffix) in self.completed:
@@ -1135,22 +1137,22 @@ class SMInference(object):
                     for res in pool_results:
                         print('Done with process {}'.format(res))
 
-            self.concat_temp_files(output_prefix+'.hypo')
+            self.concat_temp_files(output_prefix + '.hypo')
             print('Written to {}'.format(output_prefix + '.hypo'))
             if not self.args.iterate_files:
                 break
 
     def concat_temp_files(self, final_file_name):
-        temp_files = glob.glob(os.path.join(self.args.output_dir, final_file_name+'*'))
+        temp_files = glob.glob(os.path.join(self.args.output_dir, final_file_name + '*'))
         if len(temp_files) == 0:
-            print("No temporary file found in {} that matches {}".format(self.args.output_dir, final_file_name+'*'))
+            print("No temporary file found in {} that matches {}".format(self.args.output_dir, final_file_name + '*'))
         elif len(temp_files) == 1:
             print("Only one temporary file: {}. Renaming it now!".format(temp_files[0]))
             os.rename(temp_files[0], os.path.join(self.args.output_dir, final_file_name))
         else:
             with open(os.path.join(self.args.output_dir, final_file_name), 'w') as f:
                 for worker_id in range(0, self.num_workers):
-                    temp_file_path = os.path.join(self.args.output_dir, final_file_name+str(worker_id))
+                    temp_file_path = os.path.join(self.args.output_dir, final_file_name + str(worker_id))
                     print("Concatenating ", temp_file_path)
                     with open(temp_file_path, 'r') as f_in:
                         for line in f_in:
@@ -1166,7 +1168,7 @@ def _run_answer_process(job_idx, *, n_files, offsets, args):
         args.input_file,
         n_files,
         offsets[job_idx],
-        offsets[job_idx+1]
+        offsets[job_idx + 1]
     )
     proc = subprocess.Popen(
         cmd,
@@ -1187,7 +1189,7 @@ if __name__ == '__main__':
 
     # input data and model directories
     parser.add_argument('--mode', type=str, default="local")
-    parser.add_argument('--task', type=str, default="gen_summary") # gen_answer
+    parser.add_argument('--task', type=str, default="gen_summary")  # gen_answer
     parser.add_argument('--base_dir', type=str, default="/data/fairseq_bart/question_generation/distill_qa")
     parser.add_argument('--input_file', type=str, default="")
     parser.add_argument('--checkpoint_dir', type=str, default="/data/exps/fairseq_bart_question_generation/model")
@@ -1201,13 +1203,13 @@ if __name__ == '__main__':
     parser.add_argument("--max_len", type=int, default=140)
     parser.add_argument("--min_len", type=int, default=55)
     parser.add_argument('--sampling', type=str2bool, nargs='?', const=True, default=False,
-                       help='whether to use sampling or not')
+                        help='whether to use sampling or not')
     parser.add_argument('--sampling_topk', type=int, default=-1, help='sampling_topk, -1 to disable')
     parser.add_argument('--sampling_topp', type=float, default=-1.0, help='sampling_topp, -1.0 to disable')
     parser.add_argument('--diverse_beam_groups', default=-1, type=int, metavar='N',
-                       help='number of groups for Diverse Beam Search')
+                        help='number of groups for Diverse Beam Search')
     parser.add_argument('--diverse_beam_strength', default=0.5, type=float, metavar='N',
-                       help='strength of diversity penalty for Diverse Beam Search')
+                        help='strength of diversity penalty for Diverse Beam Search')
 
     parser.add_argument('--iterate_files', type=str2bool, nargs='?', const=True, default=False)
 
@@ -1225,13 +1227,13 @@ if __name__ == '__main__':
     parser.add_argument('--ans_file', type=str, default='train.source.split*.hypo.ans')
 
     parser.add_argument('--return_all', type=str2bool, nargs='?', const=True, default=True,
-                       help='whether to return all hypothesis or just the first one')
+                        help='whether to return all hypothesis or just the first one')
     parser.add_argument('--return_token_scores', type=str2bool, nargs='?', const=True, default=False,
-                       help='whether to return token level scores and tokens in QAGen.')
+                        help='whether to return token level scores and tokens in QAGen.')
     parser.add_argument('--batch_lines', type=str2bool, nargs='?', const=True, default=False,
-                       help='whether to return all hypothesis or just the first one')
+                        help='whether to return all hypothesis or just the first one')
     parser.add_argument('--prepend_target', type=str2bool, nargs='?', const=True, default=True,
-                       help='whether prepend ground truth summary to the source when evaluating qa score.')
+                        help='whether prepend ground truth summary to the source when evaluating qa score.')
 
     args, unparsed = parser.parse_known_args()
 
@@ -1240,8 +1242,9 @@ if __name__ == '__main__':
             print("Output dir does not exisit. Creating: {}".format(args.output_dir))
             os.makedirs(args.output_dir)
 
-    assert args.task in ['gen_summary', 'gen_answer', 'gen_question', 'gen_qa', 'qa_eval', 'qa_eval_gen',]
-    if args.task in ['gen_summary', 'gen_question', 'gen_qa', 'qa_eval', 'qa_eval_gen',]:
+    assert args.task in ['gen_summary', 'gen_answer', 'gen_question', 'gen_qa', 'qa_eval', 'qa_eval_gen', ]
+    if args.task in ['gen_summary', 'gen_question', 'gen_qa', 'qa_eval', 'qa_eval_gen', ]:
+        # Adjust output file names given user input
         if args.task == 'qa_eval':
             output_suffix = 'source_eval'
             if not args.prepend_target:
