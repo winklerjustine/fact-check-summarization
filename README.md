@@ -253,6 +253,36 @@ Launch training jobs using scripts `scripts/launch_multitask_*.py`.
 
 ## [Improving Factual Consistency of Abstractive Summarization via Question Answering](https://arxiv.org/abs/2105.04623)
 
+<<<<<<< HEAD
+=======
+### *QUALS* (QUestion Answering with Language model score for Summarization)
+To evaluate the QUALS of summaries (e.g. test.target) given original input (e.g. test.source), we execute the following steps in the `preprocess` sub-directory.
+#### 0. Prepare summaries into jsonl format
+```
+python evaluate_hypo.py --mode convert_hypo_to_json --base_dir <processed-data-dir> --sub_dir <any-sub-directory-to-data> --split test --pattern .target
+```
+ 
+#### 1. Generating question and answer pairs from summaries
+```
+python sm_inference_asum.py --task gen_qa --base_dir <processed-data-dir> --source_dir <any-sub-directory-to-data> --output_dir <output-dir> --num_workers <num-of-gpus> --bsz 5 --beam 60 --max_len 60 --min_len 8 --checkpoint_dir <QAGen-model-dir> --ckp_file checkpoint2.pt --bin_dir <processed-data-dir>/data_bin --diverse_beam_groups 60 --diverse_beam_strength 0.5 --batch_lines True --input_file test.target.hypo --return_token_scores True
+```
+Here, we use diverse beam search to generate 60 question-answer pairs for each summary. The `batch_lines` option is set to `True` to batch `bsz` input summaries together for efficient generation. The QAGen model is trained by fine-tuning BART on the [SQuAD](https://www.aclweb.org/anthology/D16-1264.pdf) and [NewsQA](https://github.com/Maluuba/newsqa) datasets by concatenating the question-answer pairs using a separator. 
+
+To train the QAGen model, place the `dev-v1.1.json` and `train-v1.1.json` of SQuAD and the `combined-newsqa-data-v1.json` of the NewsQA under `<squad-newsqa-dir>`. The following command generates the binarized input for fine-tuning BART using Fairseq.
+```
+python data_prepro_clean.py --mode newsqa_squad_prepro --input_dir <squad-newsqa-dir> --output_dir <squad-newsqa-dir>
+```
+You can also download our trained QAGen model from s3 by running:
+```
+aws s3 cp s3://fact-check-summarization/newsqa-squad-qagen-checkpoint/checkpoint2.pt <QAGen-model-dir>/
+```
+Alternatively, you can download [here](https://fact-check-summarization.s3.amazonaws.com/newsqa-squad-qagen-checkpoint/checkpoint2.pt) if you don't have awscli.
+
+#### 2. Filter the generated question and answer for high quality pairs
+```
+python evaluate_hypo.py --mode filter_qas_dataset_lm_score --base_dir <processed-data-dir> --sub_dir <any-sub-directory-to-qas> --pattern test.target.hypo.beam60.qas
+```
+>>>>>>> 70d3a5d2c62de49cf187479dea3101b2e30b273a
 
 
 ### *CONSEQ* (CONtrastive SEQ2seq learning)
