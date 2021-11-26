@@ -1,3 +1,155 @@
+# Code for DS thesis
+## Folder structure overview
+The folders that are most important for the current adjustments are illustrated in detail.
+```
+fact-check-summarization/ 
+├─ build/  
+├─ docs/  # fairseq documentation (model classes etc)
+├─ examples/ # Readme files: NLP models with download links and usage examples
+├─ fairseq/  # ? Code by QUALS author that uses fairseq
+├─ fairseq.egg-info/ # fairseq infos; automatically created 
+├─ fairseq_cli/ # Code from fairseq repo, seems slightly adjusted by QUALS authors 
+├─ fairseq_downloaded_files/ # Folder with encoder and vocab for fairseq 
+├─ files2rouge/ # I installed files2rouge into this folder 
+├─ preprocess/ # 
+│  ├─ data_prepro_clean.py # Create binary input files & dicts for fairseq  
+│  ├─ evaluate_hypo
+│  ├─ file ??
+├─ preprocessed_data_dir/
+│  ├─ evaluated_qas/
+│  ├─ quals_output_dir/
+│  ├─ tryout_data/
+│  ├─ julien.target 
+│  ├─ julien.target.hypo
+│  ├─ test.source
+│  ├─ test.target
+│  ├─ test.target.hypo 
+├─ quals_output_dir/
+├─ quals_output_dir/
+│  ├─ test.target.hypo.beam60.qas 
+├─ scripts/ # scripts provided by QUALS ?
+│  ├─ launch_qa.py # My code to fine-tune the BART-Large QA model on SQuAD and NewsQA
+│  ├─ launch_sagemaker_unlikelihood_cnndm.py # Train their summarizer? 
+│  ├─ launch_sagemaker_unlikelihood_xsum.py # Train their summarizer? 
+├─ scriptsAndToolsForInstall/ # folder I created installing files2rouge
+├─ squad_newsqa_dir/ # Directory with all SQuAD and NewsQA data
+├─ tests/ # Test code from QUALS authors 
+├─ bart_finetuning_output.txt # Logging file from bart fine-tuning  
+├─ dict.txt # File needed for fairseq 
+├─ preprocess.py # ?  
+├─ score.py # ? 
+├─ .gitignore
+├─ README.md
+```
+## Step-by-step: preparations 
+### General requirements and setup
+
+- `python==3.6`: `conda create -n entity_fact python=3.6`
+- `pytorch==1.4.0`: `pip install torch==1.4.0 torchvision==0.5.0`
+- run `pip install --editable ./`
+- install `file2rouge` following instructions [here](https://github.com/pltrdy/files2rouge)
+- spacy; download `en_core_web_lg`: `python -m spacy download en_core_web_lg`
+
+#### Preparations to tokenize and binarize the data:
+Download bpe encoder.json, vocabulary and fairseq dictionary to a directory, say `<bpe-dir>`; then tokenize and binarize the data.
+```bash
+wget -O <bpe-dir>/encoder.json 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/encoder.json'
+wget -O <bpe-dir>/vocab.bpe 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/vocab.bpe'
+wget -N <bpe-dir>/dict.txt 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/dict.txt'
+```
+*The encoder.json and vocab.bpe are in the folder fairseq_downloaded_files. The dict.txt is (or was already) in the working directory.*
+
+#### Tokenize and binarize the data:
+To train the QAGen model, place the `dev-v1.1.json` and `train-v1.1.json` of SQuAD and the `combined-newsqa-data-v1.json` of the NewsQA under `<squad-newsqa-dir>`. The following command generates the binarized input for fine-tuning BART using Fairseq.
+```
+python data_prepro_clean.py --mode newsqa_squad_prepro --input_dir <squad-newsqa-dir> --output_dir <squad-newsqa-dir>
+```
+*What I did (with preprocess as working directory) and squad_newsqa_dir as <squad-newsqa-dir>:*
+```
+python data_prepro_clean.py --mode newsqa_squad_prepro --input_dir ../squad_newsqa_dir --output_dir ../squad_newsqa_dir --tokenizer_dir ../
+```
+
+Their binarization explanation:
+```bash
+cd preprocess 
+python data_prepro_clean.py --mode bpe_binarize --input_dir <processed-data-dir> --tokenizer_dir <bpe-dir>
+```
+This generates the binary input files as well as the dictionaries under `<processed-data-dir>/data_bin` for fairseq.
+*I did this with the SQuAD and NewsQA data from the squad_newsqa_dir.*
+
+####  Fine-tune the BART-large model on the generated data:
+Run the launch scripts `scripts/launch_xsum.py`, `scripts/launch_cnndm.py` or `scripts/launch_newsroom.py` to fine-tune the BART-large model.
+Note you need to modify the following in the scripts:
+- `hyperparameters`.
+- `train_path`: location of the binary input files. e.g. `<processed-data-dir>/entity_augment/data_bin`.
+- `init_path`: location of the pre-trained BART-large model checkpoint. **Please rename the checkpoint to `pretrained_model.pt`**
+- `output_path`: location for the model outputs.
+
+If training locally, you need to specify `ngpus` - the number of GPUS in the local machine. Example command:
+```
+python scripts/launch_xsum.py --datatype ner_filtered --epoch 8 --exp_type local
+```
+
+*I created the script scripts/launch_qa.py to fine-tune the QA Bart model* 
+```
+python scripts/launch_qa.py 
+```
+
+
+## *QUALS* (QUestion Answering with Language model score for Summarization)
+To evaluate the QUALS of summaries (e.g. test.target) given original input (e.g. test.source), we execute the following steps in the `preprocess` sub-directory.
+#### 0. Prepare summaries into jsonl format
+
+```
+python evaluate_hypo.py --mode convert_hypo_to_json --base_dir <processed-data-dir> --sub_dir <any-sub-directory-to-data> --split test --pattern .target
+```
+*I copied text files into the folder preprocessed_data_dir (ending in .target). Then I ran the following ("docs_to_jsonl"):*
+
+```
+python preprocess/evaluate_hypo.py --mode convert_hypo_to_json --base_dir preprocessed_data_dir --sub_dir "." --pattern "*.target"
+```
+*This step creates .target.hypo files.*
+
+#### 1. Generating question and answer pairs from summaries
+```
+python sm_inference_asum.py --task gen_qa --base_dir <processed-data-dir> --source_dir <any-sub-directory-to-data> --output_dir <output-dir> --num_workers <num-of-gpus> --bsz 5 --beam 60 --max_len 60 --min_len 8 --checkpoint_dir <QAGen-model-dir> --ckp_file checkpoint2.pt --bin_dir <processed-data-dir>/data_bin --diverse_beam_groups 60 --diverse_beam_strength 0.5 --batch_lines True --input_file test.target.hypo --return_token_scores True
+```
+Here, we use diverse beam search to generate 60 question-answer pairs for each summary. The `batch_lines` option is set to `True` to batch `bsz` input summaries together for efficient generation. The QAGen model is trained by fine-tuning BART on the [SQuAD](https://www.aclweb.org/anthology/D16-1264.pdf) and [NewsQA](https://github.com/Maluuba/newsqa) datasets by concatenating the question-answer pairs using a separator. 
+
+*I ran the following ("generate_qa_pairs"):*
+```
+python preprocess/sm_inference_asum.py --task gen_qa --base_dir preprocessed_data_dir --source_dir tryout_data --output_dir preprocessed_data_dir/quals_output_dir --num_workers 1 --bsz 5 --beam 60 --max_len 60 --min_len 8 --checkpoint_dir /media/jw/Daten/DSThesis/PreTrained/bart-large/qa-fine-tuning-output --ckp_file checkpoint8.pt --bin_dir squad_newsqa_dir/data_bin --diverse_beam_groups 60 --diverse_beam_strength 0.5 --batch_lines True --input_file test.target.hypo --return_token_scores True
+```
+
+#### 2. Filter the generated question and answer for high quality pairs
+```
+python evaluate_hypo.py --mode filter_qas_dataset_lm_score --base_dir <processed-data-dir> --sub_dir <any-sub-directory-to-qas> --pattern test.target.hypo.beam60.qas
+```
+*I ran the following ("filter_qa_pairs"):*
+```
+python preprocess/evaluate_hypo.py --mode filter_qas_dataset_lm_score --base_dir preprocessed_data_dir --sub_dir quals_output_dir --pattern test.target.hypo.beam60.qas
+```
+#### 3. Evaluate the generated question and answer pairs using the source document as input
+```
+python sm_inference_asum.py --task qa_eval --base_dir <processed-data-dir> --output_dir <output-dir> --num_workers <num-of-gpus> --bsz 30 --checkpoint_dir <QAGen-model-dir> --ckp_file checkpoint2.pt --bin_dir <processed-data-dir>/data_bin --qas_dir <sub-directory-to-qas-filtered> --source_file test.source --target_file test.target --input_file test.target.qas_filtered --prepend_target False
+```
+*I ran the following ("eval_qas_with_document"):*
+```
+python preprocess/sm_inference_asum.py --task qa_eval --base_dir preprocessed_data_dir --source_dir tryout_data --output_dir preprocessed_data_dir/evaluated_qas --num_workers 1 --bsz 30 --checkpoint_dir /media/jw/Daten/DSThesis/PreTrained/bart-large/qa-fine-tuning-output --ckp_file checkpoint8.pt --bin_dir squad_newsqa_dir/data_bin --qas_dir quals_output_dir --source_file test.source --target_file test.target --input_file test.target.hypo.beam60.qas_filtered --prepend_target False
+```
+#### 4. Compute QUALS scores for each summary
+```
+python evaluate_hypo.py --mode compute_hypos_lm_score --base_dir <processed-data-dir> --sub_dir <sub-directory-to-qas-filtered> --pattern test.*.source_eval_noprepend
+```
+*I ran the following ("compute_quals"):*
+```
+python preprocess/evaluate_hypo.py--mode compute_hypos_lm_score --base_dir preprocessed_data_dir --sub_dir evaluated_qas --pattern test.*.source_eval_noprepend
+```
+
+
+
+
+
 # Improving Factual Consistency of Abstractive Text Summarization
 We provide the code for the papers:
  1. ["Entity-level Factual Consistency of Abstractive Text Summarization"](https://www.aclweb.org/anthology/2021.eacl-main.235/), EACL 2021.
@@ -10,13 +162,6 @@ We provide the code for the papers:
 
 Our code is based on the [fairseq](https://github.com/pytorch/fairseq) library and we added support for model training on [Sagemaker](https://aws.amazon.com/sagemaker/).
 
-## Requirements and setup
-
-- `python==3.6`: `conda create -n entity_fact python=3.6`
-- `pytorch==1.4.0`: `pip install torch==1.4.0 torchvision==0.5.0`
-- run `pip install --editable ./`
-- install `file2rouge` following instructions [here](https://github.com/pltrdy/files2rouge)
-- download `en_core_web_lg`: `python -m spacy download en_core_web_lg`
 
 ## [Entity-level Factual Consistency of Abstractive Text Summarization](https://www.aclweb.org/anthology/2021.eacl-main.235/)
 ### Data preprocessing:
@@ -41,18 +186,6 @@ Undesirable summaries such as "Collection of all USATODAY.com coverage of People
 1. Download the datasets following instructions from [here](https://github.com/lil-lab/newsroom).
 2. Run `python preprocess/data_prepro_clean.py --mode preprocess_newsroom --input_dir <newsroom-data-dir> --output_dir <newsroom-data-dir>/processed-data --filter_level 0` with `filter_level` set to 0, 1, or 2.
 
-#### Tokenize and binarize the data:
-Download bpe encoder.json, vocabulary and fairseq dictionary to a directory, say `<bpe-dir>`; then tokenize and binarize the data.
-```bash
-wget -O <bpe-dir>/encoder.json 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/encoder.json'
-wget -O <bpe-dir>/vocab.bpe 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/vocab.bpe'
-wget -N <bpe-dir>/dict.txt 'https://dl.fbaipublicfiles.com/fairseq/gpt2_bpe/dict.txt'
-
-cd preprocess
-python data_prepro_clean.py --mode bpe_binarize --input_dir <processed-data-dir> --tokenizer_dir <bpe-dir>
-```
-
-This generates the binary input files as well as the dictionaries under `<processed-data-dir>/data_bin` for fairseq.
 
 ### JAENS: Joint Entity and Summary Generation
 The idea is to train the seq2seq model to generate `<summary-worthy named entities> <sep> <abstractive summary>`. 
@@ -120,37 +253,7 @@ Launch training jobs using scripts `scripts/launch_multitask_*.py`.
 
 ## [Improving Factual Consistency of Abstractive Summarization via Question Answering](https://arxiv.org/abs/2105.04623)
 
-### *QUALS* (QUestion Answering with Language model score for Summarization)
-To evaluate the QUALS of summaries (e.g. test.target) given original input (e.g. test.source), we execute the following steps in the `preprocess` sub-directory.
-#### 0. Prepare summaries into jsonl format
-```
-python evaluate_hypo.py --mode convert_hypo_to_json --base_dir <processed-data-dir> --sub_dir <any-sub-directory-to-data> --split test --pattern .target
-```
- 
-#### 1. Generating question and answer pairs from summaries
-```
-python sm_inference_asum.py --task gen_qa --base_dir <processed-data-dir> --source_dir <any-sub-directory-to-data> --output_dir <output-dir> --num_workers <num-of-gpus> --bsz 5 --beam 60 --max_len 60 --min_len 8 --checkpoint_dir <QAGen-model-dir> --ckp_file checkpoint2.pt --bin_dir <processed-data-dir>/data_bin --diverse_beam_groups 60 --diverse_beam_strength 0.5 --batch_lines True --input_file test.target.hypo --return_token_scores True
-```
-Here, we use diverse beam search to generate 60 question-answer pairs for each summary. The `batch_lines` option is set to `True` to batch `bsz` input summaries together for efficient generation. The QAGen model is trained by fine-tuning BART on the [SQuAD](https://www.aclweb.org/anthology/D16-1264.pdf) and [NewsQA](https://github.com/Maluuba/newsqa) datasets by concatenating the question-answer pairs using a separator. 
 
-To train the QAGen model, place the `dev-v1.1.json` and `train-v1.1.json` of SQuAD and the `combined-newsqa-data-v1.json` of the NewsQA under `<squad-newsqa-dir>`. The following command generates the binarized input for fine-tuning BART using Fairseq.
-```
-python data_prepro_clean.py --mode newsqa_squad_prepro --input_dir <squad-newsqa-dir> --output_dir <squad-newsqa-dir>
-```
-
-#### 2. Filter the generated question and answer for high quality pairs
-```
-python evaluate_hypo.py --mode filter_qas_dataset_lm_score --base_dir <processed-data-dir> --sub_dir <any-sub-directory-to-qas> --pattern test.target.hypo.beam60.qas
-```
-
-#### 3. Evaluate the generated question and answer pairs using the source document as input
-```
-python sm_inference_asum.py --task qa_eval --base_dir <processed-data-dir> --output_dir <output-dir> --num_workers <num-of-gpus> --bsz 30 --checkpoint_dir <QAGen-model-dir> --ckp_file checkpoint2.pt --bin_dir <processed-data-dir>/data_bin --qas_dir <sub-directory-to-qas-filtered> --source_file test.source --target_file test.target --input_file test.target.qas_filtered --prepend_target False
-```
-#### 4. Compute QUALS scores for each summary
-```
-python evaluate_hypo.py --mode compute_hypos_lm_score --base_dir <processed-data-dir> --sub_dir <sub-directory-to-qas-filtered> --pattern test.*.source_eval_noprepend
-```
 
 ### *CONSEQ* (CONtrastive SEQ2seq learning)
 To use *QUALS* to improve factual consistency of the summarization model using the *CONSEQ* algorithm, we follow the steps:
